@@ -1,24 +1,18 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-
-// google authentication
+// // google authentication
 import {
   getAuth,
   signInWithPopup,
   GoogleAuthProvider,
-  signInWithRedirect,
+  FacebookAuthProvider,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
 } from "firebase/auth";
+// // ====== create Firestore ======
+import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 
-// ====== create Firestore ======
-import {
-  getFirestore,
-  doc,
-  getDoc,
-  setDoc,
-  Firestore,
-  getDocs,
-} from "firebase/firestore";
-
+// ===== Initialize Firebase ======
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
 // Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDaxmd3rpyF5YmyE83U9Cxl3S5ck7v6v_o",
@@ -28,45 +22,79 @@ const firebaseConfig = {
   messagingSenderId: "373992124142",
   appId: "1:373992124142:web:651536c7bb24756f8fcdff",
 };
-
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
+// ===== Initialize Firebase ======
 
-const provider = new GoogleAuthProvider();
+// =========== Google Sign In Authentication ===========
+const googleProvider = new GoogleAuthProvider();
 
-provider.setCustomParameters({
+googleProvider.setCustomParameters({
   prompt: "select_account",
 });
 
-export const auth = getAuth();
-export const signInWithGooglePopup = () => signInWithPopup(auth, provider);
+export const auth = getAuth(app);
 
-// ======= setup firestore =========
+export const signInWithGooglePopup = () =>
+  signInWithPopup(auth, googleProvider);
+// =========== Google Sign In Authentication ===========
 
+// =========== Google Sign In Authentication ===========
+const fbProvider = new FacebookAuthProvider();
+
+fbProvider.setCustomParameters({
+  prompt: "select_account",
+});
+
+export const signInWithFacebookPopup = () => signInWithPopup(auth, fbProvider);
+// =========== Google Sign In Authentication ===========
+
+// =========== create Users Document From Auth ===========
 // create db
-export const db = getFirestore();
-// create user document
-export const createUserDocumentFromAuth = async (userAuth) => {
+const db = getFirestore();
+
+export const createUserDocumentFromAuth = async (
+  userAuth,
+  additionalInfo = {}
+) => {
+  if (!userAuth) return;
+  // create user document reference
   const userDocRef = doc(db, "users", userAuth.uid);
 
   const userSnapshot = await getDoc(userDocRef);
-  // user data not exixts
+
+  // if user not exist
   if (!userSnapshot.exists()) {
-    // create user and set user
+    //get user info
     const { displayName, email } = userAuth;
     const createAt = new Date();
 
     try {
+      // create user document and add to firestore
       await setDoc(userDocRef, {
         displayName,
         email,
         createAt,
+        ...additionalInfo,
       });
-    } catch (err) {
-      console.log("error catching the user ", err.massage);
+    } catch (error) {
+      console.log(error.message);
     }
   }
 
-  // user data exixts
+  // user exist
   return userDocRef;
+};
+
+// =========== sign up with email and password ===========
+export const createAuthUserWithEmailAndPassword = (email, password) => {
+  if (!email || !password) return;
+
+  return createUserWithEmailAndPassword(auth, email, password);
+};
+
+// =========== sign In with email and password ===========
+export const signInAuthUserWithEmailAndPassword = (email, password) => {
+  if (!email || !password) return;
+
+  return signInWithEmailAndPassword(auth, email, password);
 };
