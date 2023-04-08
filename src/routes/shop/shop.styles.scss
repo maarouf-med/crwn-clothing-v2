@@ -1,0 +1,9 @@
+.products-container {
+  width: 1200px;
+  margin: 20px auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  flex-wrap: wrap;
+  column-gap: 10px;
+  row-gap: 50px;
+}
