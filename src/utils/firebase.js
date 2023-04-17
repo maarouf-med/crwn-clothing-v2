@@ -11,7 +11,16 @@ import {
 } from "firebase/auth";
 
 // ****firestore****
-import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  writeBatch,
+  getDocs,
+  query,
+} from "firebase/firestore";
 
 // =======Initialize Firebase==========
 // Import the functions you need from the SDKs you need
@@ -63,11 +72,18 @@ export const signInAuthWithEmailAndPassword = async (email, password) =>
   await signInWithEmailAndPassword(auth, email, password);
 
 //#########################################################################
+// SIGN OUT
+export const SignOutUser = async () => await signOut(auth);
+//#########################################################################
+export const onAuthStateChangedListener = async (callback) =>
+  await onAuthStateChanged(auth, callback);
 
+//#########################################################################
+//==== FIRESTORE ====
 //#########################################################################
 // create firestore documuent users
 const db = getFirestore(app);
-
+// create user document from auth
 export const createUserDocumentFromAuth = async (user, getName) => {
   let { uid, displayName, email } = user;
 
@@ -95,9 +111,33 @@ export const createUserDocumentFromAuth = async (user, getName) => {
 
   return userDocRef;
 };
-//#########################################################################
-// SIGN OUT
-export const SignOutUser = async () => await signOut(auth);
-//#########################################################################
-export const onAuthStateChangedListener = async (callback) =>
-  await onAuthStateChanged(auth, callback);
+
+// =========== create catagories collection ==============
+export const addCollectionAndDocuments = async (collectionKey, objectToAdd) => {
+  // catagories ref
+  const collectionRef = collection(db, collectionKey);
+  const batch = writeBatch(db);
+
+  // write in db
+  objectToAdd.forEach((object) => {
+    const docRef = doc(collectionRef, object.title.toLowerCase());
+    // set new document
+    batch.set(docRef, object);
+  });
+
+  await batch.commit();
+  console.log("done");
+};
+// =========== get catagories collection ==============
+export const getCategoriesAndDocuments = async () => {
+  const collectionRef = collection(db, "categories");
+  const q = query(collectionRef);
+  const querySnapshot = await getDocs(q);
+  const catagoryMap = querySnapshot.docs.reduce((acc, docSnapshot) => {
+    const { title, items } = docSnapshot.data();
+    acc[title.toLowerCase()] = items;
+    return acc;
+  }, {});
+
+  return catagoryMap;
+};
